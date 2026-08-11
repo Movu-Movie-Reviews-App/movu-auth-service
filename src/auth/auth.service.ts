@@ -86,6 +86,7 @@ export class AuthService {
 
     return {
       user,
+      valid: true,
       token: this.getJwtToken(user.id, user.userName)
     }
 
