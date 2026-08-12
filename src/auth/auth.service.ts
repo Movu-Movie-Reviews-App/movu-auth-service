@@ -10,6 +10,7 @@ import { UserAuthEntity } from './entities/user-auth.entity';
 import { RegisterUserDto } from './dto/register-user.dto';
 import { USER_SERVICE, envs } from './config';
 import { ClientProxy, RpcException } from '@nestjs/microservices';
+import { firstValueFrom } from 'rxjs';
 
 
 @Injectable()
@@ -40,10 +41,13 @@ export class AuthService {
     await this.userAuthRepository.save(userAuth);
 
     try {
-      await this.userClient.send('users.create', {
+      // firstValueFrom, not a bare await: send() returns a cold Observable, so
+      // awaiting it resolves without ever subscribing — the message is never sent
+      // and the rollback below can never fire.
+      await firstValueFrom(this.userClient.send('users.create', {
         id: userAuth.id,
         userName,
-      });
+      }));
 
     } catch (error) {
       await this.userAuthRepository.delete(userAuth.id);
