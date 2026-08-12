@@ -8,8 +8,8 @@ import { MoreThan, Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { UserAuthEntity } from './entities/user-auth.entity';
 import { RegisterUserDto } from './dto/register-user.dto';
-import { USER_SERVICE } from './config';
-import { ClientProxy } from '@nestjs/microservices';
+import { USER_SERVICE, envs } from './config';
+import { ClientProxy, RpcException } from '@nestjs/microservices';
 
 
 @Injectable()
@@ -20,7 +20,6 @@ export class AuthService {
     private readonly verificationCodeRepository: Repository<VerificationCode>,
     @InjectRepository(UserAuthEntity)
     private readonly userAuthRepository: Repository<UserAuthEntity>,
-    @InjectRepository(JwtService)
     private readonly jwtService: JwtService,
     @Inject(USER_SERVICE)
     private readonly userClient: ClientProxy
@@ -81,8 +80,20 @@ export class AuthService {
 
   }
 
-  async checkStatus(userId: string) {
-    const user = await this.findUserById(userId);
+  // Takes the raw token, never a caller-supplied user id: the signature is what
+  // proves the caller is who they claim to be. Trusting an incoming userId would
+  // let anyone act as any user.
+  async checkStatus(token: string) {
+
+    let payload: { id: string; userName: string };
+
+    try {
+      payload = this.jwtService.verify(token, { secret: envs.jwtSecret });
+    } catch {
+      throw new RpcException({ status: 401, message: 'Invalid or expired token' });
+    }
+
+    const user = await this.findUserById(payload.id);
 
     return {
       user,

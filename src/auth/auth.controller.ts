@@ -20,8 +20,8 @@ export class AuthController {
   }
 
   @MessagePattern('auth.check-status')
-  checkStatus(@Payload('userId', ParseUUIDPipe) userId: string) {
-    return this.authService.checkStatus(userId);
+  checkStatus(@Payload('token') token: string) {
+    return this.authService.checkStatus(token);
   }
 
   @MessagePattern('auth.request-password-reset')
