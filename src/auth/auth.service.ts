@@ -41,9 +41,6 @@ export class AuthService {
     await this.userAuthRepository.save(userAuth);
 
     try {
-      // firstValueFrom, not a bare await: send() returns a cold Observable, so
-      // awaiting it resolves without ever subscribing — the message is never sent
-      // and the rollback below can never fire.
       await firstValueFrom(this.userClient.send('users.create', {
         id: userAuth.id,
         userName,
